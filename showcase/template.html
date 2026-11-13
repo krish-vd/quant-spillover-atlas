@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quant Spillover Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --page: #111110;
+  --surface-1: #1a1a19;
+  --surface-2: #222220;
+  --line: #2e2e2b;
+  --grid: #2a2a27;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8d8c86;
+  --us: #3987e5;
+  --india: #d95926;
+  --nasia: #199e70;
+  --china: #c98500;
+  --europe: #d55181;
+  --up: #3987e5;
+  --down: #e66767;
+  --seq-1: #184f95; --seq-2: #256abf; --seq-3: #3987e5; --seq-4: #6da7ec; --seq-5: #9ec5f4;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--text-primary);
+  font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+body { background:
+  radial-gradient(1200px 600px at 85% -10%, rgba(57,135,229,.10), transparent 60%),
+  radial-gradient(900px 500px at -10% 20%, rgba(217,89,38,.07), transparent 60%), var(--page); }
+.wrap { max-width: 1400px; margin: 0 auto; padding: 36px 32px 56px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text-muted); display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+.eyebrow .dot { width:8px; height:8px; border-radius:50%; background: var(--india); box-shadow: 0 0 0 0 rgba(217,89,38,.7); animation: ping 2.2s infinite; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(217,89,38,.6);} 80%,100% { box-shadow: 0 0 0 10px rgba(217,89,38,0);} }
+h1 { font-size: clamp(30px, 4.2vw, 52px); line-height: 1.05; letter-spacing: -0.025em; margin: 14px 0 10px; font-weight: 700; max-width: 1050px; }
+h1 em { font-style: normal; background: linear-gradient(90deg, var(--us), #6da7ec 40%, var(--india)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { color: var(--text-secondary); max-width: 880px; font-size: 16px; margin: 0; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 28px 0 22px; }
+.kpi { background: linear-gradient(180deg, var(--surface-2), var(--surface-1)); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px 16px; position: relative; overflow: hidden; }
+.kpi::after { content:""; position:absolute; inset:auto 0 0 0; height:2px; background: var(--accent, var(--us)); opacity:.9; transform-origin:left; animation: grow 1.6s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes grow { from { transform: scaleX(0);} to { transform: scaleX(1);} }
+.kpi .label { font-size: 12.5px; color: var(--text-muted); letter-spacing: .02em; }
+.kpi .value { font: 700 40px/1.1 Inter, sans-serif; letter-spacing: -0.03em; margin: 8px 0 4px; font-variant-numeric: tabular-nums; }
+.kpi .note { font-size: 13px; color: var(--text-secondary); }
+.grid2 { display: grid; grid-template-columns: 1.25fr 1fr; gap: 16px; }
+.grid2b { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.card { background: var(--surface-1); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; margin-bottom: 16px; position: relative; }
+.card h2 { padding-right: 104px; font-size: 17px; margin: 0 0 2px; letter-spacing: -0.01em; font-weight: 600; }
+.card .sub { color: var(--text-muted); font-size: 13px; margin: 0 0 12px; }
+.tag { font: 600 10.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; position: absolute; top: 18px; right: 18px; }
+svg text { fill: var(--text-secondary); font-family: Inter, system-ui, sans-serif; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-secondary); margin: 2px 0 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.tip { position: fixed; pointer-events: none; z-index: 10; background: #0b0b0a; border: 1px solid #3a3a36; color: var(--text-primary); border-radius: 10px; padding: 9px 11px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0,0,0,.45); opacity: 0; transition: opacity .12s; max-width: 280px; }
+.tip b { font-weight: 600; }
+.tip .m { font-family: var(--mono); color: var(--text-secondary); }
+.ticker { overflow: hidden; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 0 0 14px; white-space: nowrap; mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.ticker .track { display: inline-block; padding: 9px 0; animation: scroll 40s linear infinite; font: 500 13px/1 var(--mono); }
+.ticker span { margin-right: 34px; color: var(--text-secondary); }
+.ticker .pos { color: var(--up); } .ticker .neg { color: var(--down); }
+@keyframes scroll { from { transform: translateX(0);} to { transform: translateX(-50%);} }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.sector { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.sector .n { font-size: 13px; color: var(--text-secondary); }
+.sector .v { font: 700 24px/1.15 Inter, sans-serif; font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
+.sector .h { font-size: 12px; color: var(--text-muted); }
+.footer { color: var(--text-muted); font-size: 12.5px; line-height: 1.6; margin-top: 8px; display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.footer b { color: var(--text-secondary); font-weight: 600; }
+.mono { font-family: var(--mono); }
+
+.shotbar { display: none; }
+body.shot .shotbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 0 0 18px; }
+body.shot .shotbar .t { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+body.shot .shotbar .s { font: 600 11.5px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); text-align: right; }
+body.shot .shotfoot { display: flex; justify-content: space-between; margin-top: 4px; font: 500 11.5px/1.4 var(--mono); color: var(--text-muted); letter-spacing: .04em; }
+.shotfoot { display: none; }
+body.shot .wrap { padding-top: 28px; padding-bottom: 26px; }
+body.shot .card { margin-bottom: 12px; }
+@media (max-width: 1100px) { .grid3 { grid-template-columns: 1fr; } .grid2, .grid2b { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr);} .cards { grid-template-columns: repeat(2, 1fr);} .footer { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .wrap { padding: 22px 16px 40px; } .kpis, .cards { grid-template-columns: 1fr; } .tag { display:none; } }
+@media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow" data-shot="hero"><span class="dot"></span><span>Quant Spillover Atlas</span><span>·</span><span id="eyebrow-sample"></span></div>
+  <h1 data-shot="hero">How the world's markets reach <em>India</em>, and when.</h1>
+  <p class="lede" data-shot="hero">A time-zone-aware study of how moves in the US, Europe, Japan, Korea, Taiwan, Hong Kong and China pass into Nifty sectors. Every figure below is computed from free daily data and scored out of sample, with nothing known only after 09:15 IST used to forecast.</p>
+
+  <div class="kpis" id="kpis" data-shot="hero"></div>
+
+  <div class="card" data-shot="relay">
+    <span class="tag">24-hour relay</span>
+    <h2>The 24-hour relay: when each market's news reaches Mumbai</h2>
+    <p class="sub">Trading hours in UTC. Markets that close after India (the US and Europe) are fully priced into India's next open. Asian markets open before India, so their opening gaps count too, but their closes land during India's session.</p>
+    <div class="legend" id="relay-legend"></div>
+    <svg id="relay" width="100%" viewBox="0 0 1340 330" role="img" aria-label="Trading sessions of each market across 24 hours in UTC, with signals flowing to India's open"></svg>
+  </div>
+
+  <div class="grid2" data-shot="network">
+    <div class="card">
+      <span class="tag">Diebold-Yilmaz</span>
+      <h2>Spillover network</h2>
+      <p class="sub">Directed links show who drives whom (net share of forecast-error variance, VAR(1), 10 sessions). Node size shows influence given to the others. India's session ends before Europe's begins, so Indian sectors lead Euro Stoxx; the US and Asia lead India. Hover a node.</p>
+      <div class="legend" id="net-legend"></div>
+      <svg id="network" width="100%" viewBox="0 0 640 600" role="img" aria-label="Spillover network between world markets and Nifty sectors"></svg>
+    </div>
+    <div>
+      <div class="card">
+        <span class="tag">Exposure</span>
+        <h2>How much of each sector's movement comes from abroad</h2>
+        <p class="sub">Share of each Nifty sector's 10-session forecast-error variance explained by foreign markets.</p>
+        <svg id="abroad" width="100%" viewBox="0 0 560 270" role="img" aria-label="Share of each sector's variance from foreign markets"></svg>
+      </div>
+      <div class="card">
+        <span class="tag">Connectedness</span>
+        <h2>Global connectedness index</h2>
+        <p class="sub">Total spillover, 9 world markets and Nifty 50, rolling 500 sessions. Markets fuse in crises.</p>
+        <svg id="index" width="100%" viewBox="0 0 560 250" role="img" aria-label="Rolling total connectedness index over time"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2b" data-shot="score">
+    <div class="card">
+      <span class="tag">Walk-forward</span>
+      <h2>Can global cues call the day? Out-of-sample scoreboard</h2>
+      <p class="sub">Direction hit rate on sessions the model had never seen, refitted monthly on past data only. Ticks mark the naive baseline. The gap is set at 09:15; the open-to-close move is the part that can be traded.</p>
+      <div class="legend"><span><i style="background:var(--us)"></i>Opening gap</span><span><i style="background:var(--nasia)"></i>Open to close</span><span><i style="background:var(--text-primary);width:2px;height:12px;border-radius:0"></i>Naive baseline</span></div>
+      <svg id="score" width="100%" viewBox="0 0 640 420" role="img" aria-label="Out-of-sample hit rates by sector"></svg>
+    </div>
+    <div class="card">
+      <span class="tag">Pass-through</span>
+      <h2>How much is already priced in at 09:15</h2>
+      <p class="sub">Share of each sector's whole-day response to a foreign move that is already in the opening price. Above 100% the open overshoots and part reverses during the day.</p>
+      <div class="legend"><span><i style="background:var(--us)"></i>S&amp;P 500 overnight</span><span><i style="background:var(--nasia)"></i>KOSPI opening gap</span><span><i style="background:var(--china)"></i>Copper overnight</span></div>
+      <svg id="priced" width="100%" viewBox="0 0 640 420" role="img" aria-label="Share of the response priced in at the open, by sector and cue"></svg>
+    </div>
+  </div>
+
+  <div class="grid3" data-shot="robust">
+    <div class="card">
+      <span class="tag">Placebos</span>
+      <h2>Trying to break the result</h2>
+      <p class="sub">Nifty 50, out-of-sample direction hit rate. An honest model must lose its accuracy when the foreign data is shuffled or delayed. The red bar is the common mistake: using closes India cannot see at 09:15.</p>
+      <svg id="placebo" width="100%" viewBox="0 0 440 330" role="img" aria-label="Placebo test hit rates"></svg>
+    </div>
+    <div class="card">
+      <span class="tag">Calibration</span>
+      <h2>The more confident, the more often right</h2>
+      <p class="sub">Nifty 50 opening-gap hit rate by quintile of forecast size, out of sample. <span id="ci-note"></span></p>
+      <svg id="curve" width="100%" viewBox="0 0 440 330" role="img" aria-label="Hit rate by forecast-size quintile"></svg>
+    </div>
+    <div class="card">
+      <span class="tag">After costs</span>
+      <h2>The copper anomaly: real, then arbitraged</h2>
+      <p class="sub">Copper's overnight direction applied to Nifty Metal, open to close: net annual return after about 7.5 bps of costs, by year (bars), and gross bps a day stock by stock, with Coal India as a control (dots).</p>
+      <svg id="copper" width="100%" viewBox="0 0 440 330" role="img" aria-label="Copper rule returns by year and by stock"></svg>
+    </div>
+  </div>
+
+  <div class="card" data-shot="heat">
+    <span class="tag">Co-movement</span>
+    <h2>Sector × market co-movement</h2>
+    <p class="sub">Correlation of each Nifty sector's day with each market's moves over the same close-to-close window. Darker cells move together more.</p>
+    <svg id="heat" width="100%" viewBox="0 0 1340 372" role="img" aria-label="Correlation heatmap between Nifty sectors and world markets"></svg>
+  </div>
+
+  <div class="card" data-shot="brief">
+    <span class="tag" id="brief-tag">Morning brief</span>
+    <h2 id="brief-title">This morning's global cues</h2>
+    <p class="sub" id="brief-sub"></p>
+    <div class="ticker"><div class="track" id="ticker"></div></div>
+    <div class="cards" id="brief"></div>
+  </div>
+
+  <div class="footer" data-shot="method">
+    <div><b>Method.</b> India-calendar panel: overnight markets enter through sessions that closed after India's previous close, and Asian markets through their opening gap. Ridge forecasts are refitted every 21 sessions on past data only. Hit rates are compared with majority and single-cue baselines, with Holm-Bonferroni-adjusted p-values across 16 tests. Spillovers use a VAR(1) on returns aligned to India's close and a generalised forecast-error variance decomposition (Diebold-Yilmaz 2012). <b>Data:</b> free daily index, futures and FX prices; unofficial and may contain errors. <b>Not investment advice.</b></div>
+    <div class="mono" id="foot-meta"></div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+const DATA = /*__DATA__*/null;
+const S = DATA.study, B = DATA.brief, NAMES = DATA.names;
+const NS = "http://www.w3.org/2000/svg";
+const REGION = { spx:"us", ndx:"us", sox:"us", sx5e:"europe", nky:"nasia", kospi:"nasia", twse:"nasia", hsi:"china", shcomp:"china" };
+const REGION_LABEL = { us:"United States", europe:"Europe", nasia:"Japan · Korea · Taiwan", china:"Hong Kong · China", india:"India" };
+const COLOR = r => `var(--${r})`;
+const region = k => REGION[k] || "india";
+const short = { spx:"S&P 500", ndx:"Nasdaq", sox:"SOX", sx5e:"Euro Stoxx", nky:"Nikkei", kospi:"KOSPI", twse:"Taiwan", hsi:"Hang Seng", shcomp:"Shanghai",
+  nifty:"Nifty 50", it:"IT", bank:"Bank", metal:"Metal", pharma:"Pharma", auto:"Auto", energy:"Energy", fmcg:"FMCG" };
+const pct = (v, d=1) => (v*100).toFixed(d) + "%";
+const el = (tag, attrs={}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const tip = document.getElementById("tip");
+function showTip(ev, html) { tip.innerHTML = html; tip.style.opacity = 1; const x = Math.min(ev.clientX + 14, innerWidth - 300); tip.style.left = x + "px"; tip.style.top = (ev.clientY + 14) + "px"; }
+function hideTip() { tip.style.opacity = 0; }
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches || new URLSearchParams(location.search).has("still");
+
+/* ---------- header + KPIs ---------- */
+const F = Object.fromEntries(S.forecasts.map(f => [f.sector + ":" + f.target, f]));
+const country = S.network.country_level;
+const peak = country.rolling_total.reduce((a, b) => b.total_index_pct > a.total_index_pct ? b : a);
+document.getElementById("eyebrow-sample").textContent =
+  `${S.sample.first.slice(0,4)}–${S.sample.last.slice(0,4)} · ${S.sample.sessions.toLocaleString("en-IN")} Indian sessions · 9 world markets · 8 Nifty sectors · out of sample`;
+const kpis = [
+  { label: "Opening-gap direction, Nifty 50", value: F["nifty:gap"].hit_rate * 100, suffix: "%", note: `vs ${pct(F["nifty:gap"].baseline_majority)} always-up baseline`, accent: "var(--us)" },
+  { label: "On high-confidence mornings", value: F["nifty:gap"].confident_hit_rate * 100, suffix: "%", note: `${F["nifty:gap"].confident_sessions.toLocaleString("en-IN")} sessions, never seen in training`, accent: "#6da7ec" },
+  { label: "Open-to-close direction, Nifty 50", value: F["nifty:intraday"].hit_rate * 100, suffix: "%", note: "Global cues are priced in by 09:15", accent: "var(--nasia)" },
+  { label: "Global connectedness index", value: country.total_index_pct, suffix: "%", note: `Peak ${peak.total_index_pct.toFixed(1)}% in ${new Date(peak.date).toLocaleString("en-GB",{month:"short",year:"numeric"})}`, accent: "var(--india)" },
+];
+const kWrap = document.getElementById("kpis");
+kpis.forEach((k, i) => {
+  const d = document.createElement("div"); d.className = "kpi"; d.style.setProperty("--accent", k.accent);
+  d.innerHTML = `<div class="label">${k.label}</div><div class="value" data-v="${k.value}">0${k.suffix}</div><div class="note">${k.note}</div>`;
+  kWrap.appendChild(d);
+  const v = d.querySelector(".value"); const t0 = performance.now() + i * 120;
+  const tick = t => { const p = Math.min(1, Math.max(0, (t - t0) / 1400)); const e = 1 - Math.pow(1 - p, 3);
+    v.textContent = (k.value * (reduce ? 1 : e)).toFixed(1) + k.suffix; if (p < 1 && !reduce) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+});
+
+/* ---------- 24-hour relay ---------- */
+(function relay() {
+  const svg = document.getElementById("relay"), W = 1340, L = 170, R = 1310, top = 40, rowH = 30;
+  const x = h => L + (h / 24) * (R - L);
+  const rows = ["spx","ndx","sox","sx5e","nky","kospi","twse","hsi","shcomp","nifty"];
+  const M = Object.fromEntries(S.markets.map(m => [m.key, m]));
+  const lg = document.getElementById("relay-legend");
+  ["us","europe","nasia","china","india"].forEach(r => lg.insertAdjacentHTML("beforeend", `<span><i style="background:${COLOR(r)}"></i>${REGION_LABEL[r]}</span>`));
+  for (let h = 0; h <= 24; h += 3) {
+    el("line", { x1: x(h), x2: x(h), y1: top - 8, y2: top + rows.length * rowH + 4, stroke: "var(--grid)" }, svg);
+    const t = el("text", { x: x(h), y: top - 16, "text-anchor": "middle", "font-size": 11, "font-family": "JetBrains Mono" }, svg);
+    t.textContent = `${String(h).padStart(2,"0")}:00`;
+    const ist = (h + 5.5) % 24;
+    const t2 = el("text", { x: x(h), y: top + rows.length * rowH + 20, "text-anchor": "middle", "font-size": 10.5, fill: "var(--text-muted)", "font-family": "JetBrains Mono" }, svg);
+    t2.textContent = `${String(Math.floor(ist)).padStart(2,"0")}:${ist % 1 ? "30" : "00"} IST`;
+  }
+  const lbl = el("text", { x: 8, y: top - 16, "font-size": 11, fill: "var(--text-muted)", "font-family": "JetBrains Mono" }, svg); lbl.textContent = "UTC";
+  const indiaY = top + (rows.length - 1) * rowH;
+  el("rect", { x: x(3.75), y: top - 6, width: x(10) - x(3.75), height: rows.length * rowH + 6, fill: "rgba(217,89,38,0.06)" }, svg);
+  rows.forEach((k, i) => {
+    const m = M[k], y = top + i * rowH, r = region(k);
+    const t = el("text", { x: L - 14, y: y + 15, "text-anchor": "end", "font-size": 12.5, fill: k === "nifty" ? "var(--text-primary)" : "var(--text-secondary)", "font-weight": k === "nifty" ? 600 : 400 }, svg);
+    t.textContent = k === "nifty" ? "India (NSE)" : `${short[k]}`;
+    const bar = el("rect", { x: x(m.open_utc), y: y + 5, width: 0, height: 14, rx: 4, fill: COLOR(r), opacity: k === "nifty" ? 1 : .85 }, svg);
+    const w = x(m.close_utc) - x(m.open_utc);
+    if (reduce) bar.setAttribute("width", w); else bar.animate([{ width: "0px" }, { width: w + "px" }], { duration: 900, delay: 120 + i * 70, fill: "forwards", easing: "cubic-bezier(.2,.8,.2,1)" });
+    bar.addEventListener("mousemove", e => showTip(e, `<b>${NAMES[k]}</b><br><span class="m">${m.open_utc.toFixed(2)}–${m.close_utc.toFixed(2)} UTC</span><br>${m.timing === "overnight" ? "Closes after India: fully known before India's next open" : m.timing === "asia" ? "Opens before India (gap known at 09:15); closes during India's session" : "Target: the Indian session"}`));
+    bar.addEventListener("mouseleave", hideTip);
+  });
+  const openMark = el("g", {}, svg);
+  el("line", { x1: x(3.75), x2: x(3.75), y1: top - 8, y2: top + rows.length * rowH, stroke: "var(--india)", "stroke-width": 1.5, "stroke-dasharray": "3 4" }, openMark);
+  const ot = el("text", { x: x(3.75) + 6, y: top - 2, "font-size": 11, fill: "var(--india)", "font-weight": 600 }, openMark); ot.textContent = "09:15 IST open";
+  // signal particles: from each foreign close (or Asian open) to India's open / session
+  const fx = el("g", {}, svg);
+  const signals = rows.filter(k => k !== "nifty").map((k, i) => {
+    const m = M[k], y = top + i * rowH + 12;
+    if (m.timing === "overnight") return { k, from: [x(m.close_utc), y], to: [x(3.75), indiaY + 12], at: m.close_utc, wrap: true };
+    return { k, from: [x(m.open_utc), y], to: [x(3.75), indiaY + 12], at: m.open_utc, wrap: false };
+  });
+  const clock = el("line", { x1: L, x2: L, y1: top - 8, y2: top + rows.length * rowH, stroke: "var(--text-primary)", "stroke-width": 1, opacity: .5 }, svg);
+  const ct = el("text", { x: L, y: top + rows.length * rowH + 36, "text-anchor": "middle", "font-size": 11, fill: "var(--text-primary)", "font-family": "JetBrains Mono" }, svg);
+  const live = [];
+  function spawn(s) {
+    const [x1, y1] = s.from, [x2, y2] = s.to;
+    const cx = s.wrap ? (x1 + R) / 2 : (x1 + x2) / 2 + 40, cy = Math.max(y1, y2) + (s.wrap ? 60 : 30);
+    const d = s.wrap ? `M${x1},${y1} C${R + 40},${y1} ${R + 40},${y2 + 40} ${(R + x2) / 2},${y2 + 40} S${x2 - 40},${y2} ${x2},${y2}` : `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`;
+    const path = el("path", { d, fill: "none", stroke: COLOR(region(s.k)), "stroke-width": 1.2, opacity: .45, "stroke-dasharray": "2 5" }, fx);
+    const dot = el("circle", { r: 4, fill: COLOR(region(s.k)) }, fx);
+    const len = path.getTotalLength(); live.push({ path, dot, len, t0: performance.now() });
+  }
+  let last = -1;
+  function loop(t) {
+    const hour = ((t / 1000) * 2) % 24;   // 12 s per simulated day
+    clock.setAttribute("x1", x(hour)); clock.setAttribute("x2", x(hour)); ct.setAttribute("x", x(hour));
+    ct.textContent = `${String(Math.floor(hour)).padStart(2,"0")}:${String(Math.floor((hour % 1) * 60)).padStart(2,"0")} UTC`;
+    signals.forEach(s => { if ((last < s.at && hour >= s.at) || (last > hour && s.at <= hour)) spawn(s); });
+    last = hour;
+    for (let i = live.length - 1; i >= 0; i--) {
+      const p = live[i], u = Math.min(1, (t - p.t0) / 2200), e = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      const pt = p.path.getPointAtLength(e * p.len); p.dot.setAttribute("cx", pt.x); p.dot.setAttribute("cy", pt.y);
+      p.path.setAttribute("opacity", .45 * (1 - u * .7));
+      if (u >= 1) { p.dot.remove(); p.path.remove(); live.splice(i, 1);
+        const ring = el("circle", { cx: x(3.75), cy: indiaY + 12, r: 4, fill: "none", stroke: "var(--india)", "stroke-width": 2 }, fx);
+        ring.animate([{ r: 4, opacity: 1 }, { r: 22, opacity: 0 }], { duration: 900, easing: "ease-out" }).onfinish = () => ring.remove(); }
+    }
+    requestAnimationFrame(loop);
+  }
+  if (!reduce) requestAnimationFrame(loop); else { clock.remove(); ct.remove(); }
+})();
+
+/* ---------- spillover network ---------- */
+(function network() {
+  const svg = document.getElementById("network"), N = S.network.sector_level, cx = 320, cy = 300;
+  const lg = document.getElementById("net-legend");
+  ["us","europe","nasia","china","india"].forEach(r => lg.insertAdjacentHTML("beforeend", `<span><i style="background:${COLOR(r)}"></i>${REGION_LABEL[r]}</span>`));
+  const foreign = ["spx","ndx","sox","sx5e","nky","kospi","twse","hsi","shcomp"].filter(k => N.names.includes(k));
+  const india = N.names.filter(k => !REGION[k]);
+  const pos = {};
+  foreign.forEach((k, i) => { const a = Math.PI * (1.08 + 0.84 * 2 * i / (foreign.length - 1)) ; pos[k] = [cx + 255 * Math.cos(a), cy + 255 * Math.sin(a) * 0.98]; });
+  // rotate so foreign arc sits on top-left to top-right
+  foreign.forEach((k, i) => { const a = -Math.PI * (0.98 - 0.96 * i / (foreign.length - 1)); pos[k] = [cx + 270 * Math.cos(a), cy + 12 + 236 * Math.sin(a)]; });
+  india.forEach((k, i) => { const a = Math.PI * (0.12 + 0.76 * i / (india.length - 1)); pos[k] = [cx + 170 * Math.cos(a), cy + 40 + 160 * Math.sin(a)]; });
+  const to = N.to_others_pct, maxTo = Math.max(...Object.values(to));
+  const edges = N.edges.slice(0, 34), maxNet = edges[0].net_pct;
+  const gE = el("g", {}, svg), gN = el("g", {}, svg);
+  const paths = edges.map((e, i) => {
+    const [x1, y1] = pos[e.source], [x2, y2] = pos[e.target];
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, bx = mx + (cx - mx) * 0.35, by = my + (cy - my) * 0.35;
+    const d = `M${x1},${y1} Q${bx},${by} ${x2},${y2}`;
+    const w = 0.8 + 3.6 * e.net_pct / maxNet;
+    const p = el("path", { d, fill: "none", stroke: COLOR(region(e.source)), "stroke-width": w, opacity: .32, "stroke-linecap": "round" }, gE);
+    p.dataset.s = e.source; p.dataset.t = e.target;
+    if (!reduce) { const dot = el("circle", { r: Math.max(1.8, w * 0.7), fill: COLOR(region(e.source)), opacity: 0 }, gE);
+      el("set", { attributeName: "opacity", to: "0.95", begin: (i * 0.17).toFixed(2) + "s" }, dot);
+      const am = el("animateMotion", { dur: (2.4 + 2.6 * (1 - e.net_pct / maxNet)).toFixed(2) + "s", repeatCount: "indefinite", path: d, begin: (i * 0.17).toFixed(2) + "s" }, dot);
+      dot.dataset.s = e.source; dot.dataset.t = e.target; }
+    p.addEventListener("mousemove", ev => showTip(ev, `<b>${NAMES[e.source]} → ${NAMES[e.target]}</b><br>net <span class="m">${e.net_pct.toFixed(2)}%</span> of variance · gross <span class="m">${e.gross_pct.toFixed(2)}%</span>`));
+    p.addEventListener("mouseleave", hideTip);
+    return p;
+  });
+  N.names.forEach(k => {
+    const [x, y] = pos[k], r = 9 + 17 * (to[k] / maxTo), g = el("g", { style: "cursor:pointer" }, gN);
+    const halo = el("circle", { cx: x, cy: y, r: r + 6, fill: COLOR(region(k)), opacity: .12 }, g);
+    if (!reduce) halo.animate([{ opacity: .06 }, { opacity: .22 }, { opacity: .06 }], { duration: 2600 + Math.random() * 1600, iterations: Infinity });
+    el("circle", { cx: x, cy: y, r, fill: COLOR(region(k)), stroke: "var(--surface-1)", "stroke-width": 2 }, g);
+    const below = !REGION[k];
+    const t = el("text", { x, y: below ? y + r + 15 : y - r - 8, "text-anchor": "middle", "font-size": 12, "font-weight": 600, fill: "var(--text-primary)" }, g);
+    t.textContent = short[k];
+    g.addEventListener("mousemove", ev => { showTip(ev, `<b>${NAMES[k]}</b><br>gives <span class="m">${to[k].toFixed(1)}%</span> · receives <span class="m">${N.from_others_pct[k].toFixed(1)}%</span><br>net <span class="m">${N.net_pct[k] > 0 ? "+" : ""}${N.net_pct[k].toFixed(1)}%</span> ${N.net_pct[k] > 0 ? "(transmitter)" : "(receiver)"}${N.from_abroad_pct[k] !== undefined ? `<br>from abroad <span class="m">${N.from_abroad_pct[k].toFixed(1)}%</span>` : ""}`);
+      gE.querySelectorAll("path,circle").forEach(p => p.style.opacity = (p.dataset.s === k || p.dataset.t === k) ? (p.tagName === "path" ? .85 : 1) : .05); });
+    g.addEventListener("mouseleave", () => { hideTip(); gE.querySelectorAll("path,circle").forEach(p => p.style.opacity = ""); });
+  });
+  const t = el("text", { x: cx, y: 588, "text-anchor": "middle", "font-size": 11.5, fill: "var(--text-muted)" }, svg);
+  t.textContent = `Total spillover ${N.total_index_pct.toFixed(1)}% · ${S.network.sessions.toLocaleString("en-IN")} sessions · top ${edges.length} net links`;
+})();
+
+/* ---------- share from abroad ---------- */
+(function abroad() {
+  const svg = document.getElementById("abroad"), A = S.network.sector_level.from_abroad_pct;
+  const rows = Object.entries(A).sort((a, b) => b[1] - a[1]), L = 90, R = 520, max = 30, h = 30;
+  const x = v => L + (v / max) * (R - L);
+  [0, 10, 20, 30].forEach(v => { el("line", { x1: x(v), x2: x(v), y1: 6, y2: rows.length * h + 6, stroke: "var(--grid)" }, svg);
+    const t = el("text", { x: x(v), y: rows.length * h + 24, "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" }, svg); t.textContent = v + "%"; });
+  rows.forEach(([k, v], i) => {
+    const y = 12 + i * h;
+    const t = el("text", { x: L - 10, y: y + 13, "text-anchor": "end", "font-size": 12.5 }, svg); t.textContent = short[k];
+    const r = el("rect", { x: L, y, width: 0, height: 18, rx: 4, fill: "var(--india)" }, svg);
+    r.animate([{ width: "0px" }, { width: (x(v) - L) + "px" }], { duration: reduce ? 0 : 1100, delay: 200 + i * 80, fill: "forwards", easing: "cubic-bezier(.2,.8,.2,1)" });
+    const lab = el("text", { x: x(v) + 8, y: y + 13, "font-size": 12, fill: "var(--text-primary)", "font-family": "JetBrains Mono" }, svg); lab.textContent = v.toFixed(1) + "%";
+    r.addEventListener("mousemove", e => showTip(e, `<b>Nifty ${short[k]}</b><br><span class="m">${v.toFixed(1)}%</span> of its forecast-error variance comes from the 9 foreign markets`)); r.addEventListener("mouseleave", hideTip);
+  });
+})();
+
+/* ---------- connectedness index over time ---------- */
+(function index() {
+  const svg = document.getElementById("index"), P = country.rolling_total, L = 44, R = 540, T = 14, Bt = 210;
+  const vals = P.map(p => p.total_index_pct), lo = Math.floor(Math.min(...vals) / 5) * 5, hi = Math.ceil(Math.max(...vals) / 5) * 5;
+  const x = i => L + i / (P.length - 1) * (R - L), y = v => Bt - (v - lo) / (hi - lo) * (Bt - T);
+  for (let v = lo; v <= hi; v += 5) { el("line", { x1: L, x2: R, y1: y(v), y2: y(v), stroke: "var(--grid)" }, svg);
+    const t = el("text", { x: L - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--text-muted)" }, svg); t.textContent = v + "%"; }
+  let year = null;
+  P.forEach((p, i) => { const yr = p.date.slice(0, 4); if (yr !== year && i > 0) { const t = el("text", { x: x(i), y: Bt + 18, "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" }, svg); t.textContent = yr; } year = yr; });
+  const d = P.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.total_index_pct).toFixed(1)}`).join("");
+  el("path", { d: d + `L${R},${Bt}L${L},${Bt}Z`, fill: "url(#gIdx)", opacity: .9 }, svg);
+  const defs = el("defs", {}, svg), gr = el("linearGradient", { id: "gIdx", x1: 0, x2: 0, y1: 0, y2: 1 }, defs);
+  el("stop", { offset: "0", "stop-color": "#3987e5", "stop-opacity": .28 }, gr); el("stop", { offset: "1", "stop-color": "#3987e5", "stop-opacity": 0 }, gr);
+  const line = el("path", { d, fill: "none", stroke: "var(--us)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+  const len = line.getTotalLength(); line.style.strokeDasharray = len; line.style.strokeDashoffset = reduce ? 0 : len;
+  if (!reduce) line.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 2400, delay: 300, fill: "forwards", easing: "ease-in-out" });
+  const pi = P.indexOf(peak);
+  el("circle", { cx: x(pi), cy: y(peak.total_index_pct), r: 4.5, fill: "var(--india)", stroke: "var(--surface-1)", "stroke-width": 2 }, svg);
+  const pt = el("text", { x: x(pi) + 9, y: y(peak.total_index_pct) + 4, "font-size": 11.5, fill: "var(--text-primary)" }, svg);
+  pt.textContent = `Peak ${peak.total_index_pct.toFixed(1)}% · COVID crash window`;
+  const cross = el("line", { y1: T, y2: Bt, stroke: "var(--text-muted)", opacity: 0 }, svg), cd = el("circle", { r: 4, fill: "var(--us)", opacity: 0 }, svg);
+  const hit = el("rect", { x: L, y: T, width: R - L, height: Bt - T, fill: "transparent" }, svg);
+  hit.addEventListener("mousemove", e => { const b = svg.getBoundingClientRect(), sx = (e.clientX - b.left) * 560 / b.width;
+    const i = Math.max(0, Math.min(P.length - 1, Math.round((sx - L) / (R - L) * (P.length - 1)))), p = P[i];
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("opacity", .6); cd.setAttribute("cx", x(i)); cd.setAttribute("cy", y(p.total_index_pct)); cd.setAttribute("opacity", 1);
+    showTip(e, `<b>${p.date}</b><br>connectedness <span class="m">${p.total_index_pct.toFixed(1)}%</span><br><span style="color:var(--text-muted)">500 sessions to this date</span>`); });
+  hit.addEventListener("mouseleave", () => { hideTip(); cross.setAttribute("opacity", 0); cd.setAttribute("opacity", 0); });
+})();
+
+/* ---------- scoreboard ---------- */
+(function score() {
+  const svg = document.getElementById("score"), sectors = ["nifty","it","bank","metal","pharma","auto","energy","fmcg"];
+  const L = 88, R = 600, lo = 0.4, hi = 0.95, x = v => L + (v - lo) / (hi - lo) * (R - L), h = 46;
+  [0.4, 0.5, 0.6, 0.7, 0.8, 0.9].forEach(v => { el("line", { x1: x(v), x2: x(v), y1: 4, y2: sectors.length * h + 4, stroke: v === 0.5 ? "#55544f" : "var(--grid)", "stroke-dasharray": v === 0.5 ? "4 4" : "" }, svg);
+    const t = el("text", { x: x(v), y: sectors.length * h + 22, "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" }, svg); t.textContent = Math.round(v * 100) + "%"; });
+  const c50 = el("text", { x: x(0.5) + 4, y: sectors.length * h + 36, "font-size": 10.5, fill: "var(--text-muted)" }, svg); c50.textContent = "coin toss";
+  sectors.forEach((s, i) => {
+    const y = 8 + i * h, g = F[s + ":gap"], d = F[s + ":intraday"];
+    const t = el("text", { x: L - 10, y: y + 18, "text-anchor": "end", "font-size": 12.5 }, svg); t.textContent = short[s];
+    [[g, "var(--us)", 0], [d, "var(--nasia)", 18]].forEach(([f, c, off], j) => {
+      const r = el("rect", { x: x(lo), y: y + off, width: 0, height: 14, rx: 4, fill: c }, svg);
+      r.animate([{ width: "0px" }, { width: (x(f.hit_rate) - x(lo)) + "px" }], { duration: reduce ? 0 : 1200, delay: 250 + i * 70 + j * 120, fill: "forwards", easing: "cubic-bezier(.2,.8,.2,1)" });
+      el("line", { x1: x(f.baseline_majority), x2: x(f.baseline_majority), y1: y + off - 2, y2: y + off + 16, stroke: "var(--text-primary)", "stroke-width": 2 }, svg);
+      const lab = el("text", { x: Math.max(x(f.hit_rate), x(f.baseline_majority)) + 7, y: y + off + 11.5, "font-size": 11.5, fill: "var(--text-primary)", "font-family": "JetBrains Mono" }, svg);
+      lab.textContent = pct(f.hit_rate) + (f.target === "intraday" && f.significant_after_adjustment ? "  ✓ significant" : "");
+      r.addEventListener("mousemove", e => showTip(e, `<b>Nifty ${short[s]} · ${f.target === "gap" ? "opening gap" : "open to close"}</b><br>hit rate <span class="m">${pct(f.hit_rate)}</span> over ${f.tested_sessions.toLocaleString("en-IN")} unseen sessions<br>high-confidence <span class="m">${pct(f.confident_hit_rate)}</span><br>baseline <span class="m">${pct(f.baseline_majority)}</span> · single best cue <span class="m">${pct(f.baseline_best_single_cue)}</span><br>adjusted p <span class="m">${f.p_value_holm_adjusted < 1e-4 ? "<0.0001" : f.p_value_holm_adjusted.toFixed(3)}</span> ${f.significant_after_adjustment ? "✓" : "✗ not significant"}`));
+      r.addEventListener("mouseleave", hideTip);
+    });
+  });
+})();
+
+/* ---------- priced at the open ---------- */
+(function priced() {
+  const svg = document.getElementById("priced"), sectors = ["nifty","it","bank","metal","pharma","auto","energy","fmcg"];
+  const cues = [["spx:overnight", "var(--us)", "S&P 500"], ["kospi:gap", "var(--nasia)", "KOSPI gap"], ["copper:overnight", "var(--china)", "Copper"]];
+  const PT = Object.fromEntries(S.pass_through.map(p => [p.sector + "|" + p.cue, p]));
+  const L = 88, R = 600, lo = 0, hi = 140, x = v => L + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (R - L), h = 46;
+  [0, 20, 40, 60, 80, 100, 120, 140].forEach(v => { el("line", { x1: x(v), x2: x(v), y1: 4, y2: sectors.length * h + 4, stroke: v === 100 ? "#77766f" : "var(--grid)", "stroke-dasharray": v === 100 ? "4 4" : "" }, svg);
+    const t = el("text", { x: x(v), y: sectors.length * h + 22, "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" }, svg); t.textContent = v + "%"; });
+  const c = el("text", { x: x(100) + 4, y: sectors.length * h + 36, "font-size": 10.5, fill: "var(--text-muted)" }, svg); c.textContent = "fully priced at 09:15";
+  sectors.forEach((s, i) => {
+    const y = 8 + i * h + 16;
+    el("line", { x1: L, x2: R, y1: y, y2: y, stroke: "var(--grid)", opacity: .6 }, svg);
+    const t = el("text", { x: L - 10, y: y + 4, "text-anchor": "end", "font-size": 12.5 }, svg); t.textContent = short[s];
+    const vs = cues.map(([cue]) => PT[s + "|" + cue]?.priced_at_open_pct).filter(v => v != null);
+    el("line", { x1: x(Math.min(...vs)), x2: x(Math.max(...vs)), y1: y, y2: y, stroke: "#4a4a45", "stroke-width": 3, "stroke-linecap": "round" }, svg);
+    cues.forEach(([cue, col, name], j) => {
+      const p = PT[s + "|" + cue]; if (!p || p.priced_at_open_pct == null) return;
+      const dot = el("circle", { cx: x(0), cy: y, r: 7, fill: col, stroke: "var(--surface-1)", "stroke-width": 2 }, svg);
+      dot.animate([{ cx: x(0) }, { cx: x(p.priced_at_open_pct) }], { duration: reduce ? 0 : 1300, delay: 300 + i * 60 + j * 90, fill: "forwards", easing: "cubic-bezier(.2,.8,.2,1)" });
+      dot.addEventListener("mousemove", e => showTip(e, `<b>Nifty ${short[s]} ← ${name}</b><br>priced at open <span class="m">${p.priced_at_open_pct.toFixed(0)}%</span><br>β gap <span class="m">${p.beta_gap.toFixed(3)}</span> · β intraday <span class="m">${p.beta_intraday.toFixed(3)}</span> · β day <span class="m">${p.beta_cc.toFixed(3)}</span>`));
+      dot.addEventListener("mouseleave", hideTip);
+    });
+    if (s === "metal") { const p = PT["metal|copper:overnight"]; const a = el("text", { x: x(p.priced_at_open_pct), y: y - 12, "text-anchor": "middle", "font-size": 11, fill: "var(--china)", "font-weight": 600 }, svg); a.textContent = `copper: only ${p.priced_at_open_pct.toFixed(0)}% at the open`; }
+  });
+})();
+
+/* ---------- placebos ---------- */
+(function placebo() {
+  const R = S.robustness; if (!R) return;
+  const svg = document.getElementById("placebo"), g = R["nifty:gap"].placebos, d = R["nifty:intraday"].placebos;
+  const groups = [["Opening gap", g], ["Open to close", d]];
+  const rows = [["Model", "true_model", "var(--us)"], ["Shuffled data", "shuffled_mean", "#77766f"], ["Cues 1 day late", "lagged_one_session", "#77766f"], ["Naive (invalid)", "naive_same_date_closes", "var(--down)"]];
+  const L = 112, Rr = 400, lo = 0.4, hi = 0.85, x = v => L + (v - lo) / (hi - lo) * (Rr - L);
+  [0.4, 0.5, 0.6, 0.7, 0.8].forEach(v => { el("line", { x1: x(v), x2: x(v), y1: 6, y2: 286, stroke: v === 0.5 ? "#55544f" : "var(--grid)", "stroke-dasharray": v === 0.5 ? "4 4" : "" }, svg);
+    const t = el("text", { x: x(v), y: 304, "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" }, svg); t.textContent = Math.round(v * 100) + "%"; });
+  groups.forEach(([label, P], gi) => {
+    const y0 = 10 + gi * 142;
+    const h = el("text", { x: 4, y: y0 + 8, "font-size": 12, "font-weight": 600, fill: "var(--text-primary)" }, svg); h.textContent = label;
+    rows.forEach(([name, key, col], i) => {
+      const y = y0 + 18 + i * 28, v = P[key];
+      const t = el("text", { x: L - 8, y: y + 12, "text-anchor": "end", "font-size": 11.5 }, svg); t.textContent = name;
+      const r = el("rect", { x: x(lo), y, width: 0, height: 16, rx: 4, fill: col }, svg);
+      r.animate([{ width: "0px" }, { width: (x(v) - x(lo)) + "px" }], { duration: reduce ? 0 : 1100, delay: 200 + gi * 300 + i * 90, fill: "forwards", easing: "cubic-bezier(.2,.8,.2,1)" });
+      if (key === "shuffled_mean") el("line", { x1: x(v), x2: x(P.shuffled_max), y1: y + 8, y2: y + 8, stroke: "var(--text-secondary)", "stroke-width": 1.5 }, svg);
+      const lab = el("text", { x: x(key === "shuffled_mean" ? Math.max(v, P.shuffled_max) : v) + 6, y: y + 12, "font-size": 11.5, "font-family": "JetBrains Mono", fill: "var(--text-primary)" }, svg);
+      lab.textContent = pct(v);
+      r.addEventListener("mousemove", e => showTip(e, key === "shuffled_mean"
+        ? `<b>${P.permutations} shuffles</b><br>mean <span class="m">${pct(P.shuffled_mean)}</span> · max <span class="m">${pct(P.shuffled_max)}</span><br>the model beat all of them`
+        : key === "naive_same_date_closes"
+          ? `<b>Invalid by design</b><br>uses sessions that close after India opens<br>overstates accuracy by <span class="m">${((v - P.true_model) * 100).toFixed(1)} pts</span>`
+          : `<b>${name}</b><br><span class="m">${pct(v)}</span>`));
+      r.addEventListener("mouseleave", hideTip);
+    });
+  });
+})();
+
+/* ---------- confidence curve ---------- */
+(function curve() {
+  const R = S.robustness; if (!R) return;
+  const m = R["nifty:gap"].model, C = m.confidence_curve, svg = document.getElementById("curve");
+  document.getElementById("ci-note").textContent = `Overall ${pct(m.hit_rate)} (95% block-bootstrap interval ${pct(m.hit_rate_95ci[0])}–${pct(m.hit_rate_95ci[1])}); Pesaran-Timmermann z = ${m.pesaran_timmermann.statistic}.`;
+  const L = 40, Rr = 420, T = 14, Bt = 280, lo = 0.4, hi = 1.0, bw = (Rr - L) / C.length;
+  const y = v => Bt - (v - lo) / (hi - lo) * (Bt - T);
+  [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0].forEach(v => { el("line", { x1: L, x2: Rr, y1: y(v), y2: y(v), stroke: v === 0.5 ? "#55544f" : "var(--grid)", "stroke-dasharray": v === 0.5 ? "4 4" : "" }, svg);
+    const t = el("text", { x: L - 6, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--text-muted)" }, svg); t.textContent = Math.round(v * 100) + "%"; });
+  const ramp = ["#184f95", "#256abf", "#3987e5", "#6da7ec", "#9ec5f4"];
+  C.forEach((c, i) => {
+    const x0 = L + i * bw + 8, w = bw - 16, top = y(c.hit_rate);
+    const r = el("rect", { x: x0, y: top, width: w, height: Bt - top, rx: 4, fill: ramp[i] }, svg);
+    if (!reduce) r.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], { duration: 1100, delay: 250 + i * 110, fill: "both", easing: "cubic-bezier(.2,.8,.2,1)" });
+    r.style.transformOrigin = `0 ${Bt}px`; r.style.transformBox = "view-box";
+    const t = el("text", { x: x0 + w / 2, y: top - 7, "text-anchor": "middle", "font-size": 12.5, "font-weight": 600, "font-family": "JetBrains Mono", fill: "var(--text-primary)" }, svg); t.textContent = pct(c.hit_rate, 0);
+    const q = el("text", { x: x0 + w / 2, y: Bt + 16, "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" }, svg); q.textContent = i === 0 ? "smallest" : i === C.length - 1 ? "largest" : `Q${c.quintile}`;
+    r.addEventListener("mousemove", e => showTip(e, `<b>Forecast-size quintile ${c.quintile}</b><br>hit rate <span class="m">${pct(c.hit_rate)}</span><br>${c.sessions} sessions · mean forecast <span class="m">${c.mean_abs_forecast_bps} bps</span>`)); r.addEventListener("mouseleave", hideTip);
+  });
+  const t = el("text", { x: (L + Rr) / 2, y: Bt + 34, "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" }, svg); t.textContent = "forecast size quintile";
+})();
+
+/* ---------- copper anomaly ---------- */
+(function copper() {
+  const Tr = S.tradability; if (!Tr) return;
+  const h = Tr.hypotheses.find(x => x.name === "copper_metal"), svg = document.getElementById("copper");
+  const years = Object.entries(h.net_by_year_pct), L = 36, Rr = 430, T = 18, Bt = 170;
+  const vals = years.map(y => y[1]), lo = Math.min(0, ...vals) - 5, hi = Math.max(...vals) + 8;
+  const y = v => Bt - (v - lo) / (hi - lo) * (Bt - T), bw = (Rr - L) / years.length;
+  el("line", { x1: L, x2: Rr, y1: y(0), y2: y(0), stroke: "#55544f" }, svg);
+  years.forEach(([yr, v], i) => {
+    const x0 = L + i * bw + 5, w = bw - 10, top = Math.min(y(v), y(0)), hgt = Math.max(1, Math.abs(y(v) - y(0)));
+    const r = el("rect", { x: x0, y: top, width: w, height: hgt, rx: 3, fill: v >= 0 ? "var(--china)" : "var(--down)" }, svg);
+    if (!reduce) r.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 200 + i * 80, fill: "both" });
+    const t = el("text", { x: x0 + w / 2, y: v >= 0 ? top - 5 : top + hgt + 12, "text-anchor": "middle", "font-size": 10.5, "font-family": "JetBrains Mono", fill: "var(--text-primary)" }, svg); t.textContent = (v > 0 ? "+" : "") + v.toFixed(0);
+    const yl = el("text", { x: x0 + w / 2, y: Bt + 16, "text-anchor": "middle", "font-size": 10.5, fill: "var(--text-muted)" }, svg); yl.textContent = "'" + String(yr).slice(2);
+    r.addEventListener("mousemove", e => showTip(e, `<b>${yr}</b><br>net <span class="m">${v.toFixed(1)}%</span> after costs`)); r.addEventListener("mouseleave", hideTip);
+  });
+  const lab = el("text", { x: L, y: 10, "font-size": 11, fill: "var(--text-muted)" }, svg); lab.textContent = "net % a year";
+  const C = (S.constituents || []).filter(c => c.gross_bps_per_day !== undefined);
+  if (!C.length) return;
+  const base = 268, x2 = v => L + 60 + (v / 32) * (Rr - L - 70);
+  el("line", { x1: x2(0), x2: x2(32), y1: base, y2: base, stroke: "var(--grid)" }, svg);
+  [0, 10, 20, 30].forEach(v => { const t = el("text", { x: x2(v), y: base + 20, "text-anchor": "middle", "font-size": 10.5, fill: "var(--text-muted)" }, svg); t.textContent = v + " bps"; });
+  const tl = el("text", { x: L, y: base + 4, "font-size": 11, fill: "var(--text-muted)" }, svg); tl.textContent = "by stock";
+  C.forEach((c, i) => {
+    const cx = x2(Math.max(0, c.gross_bps_per_day));
+    const dot = el("circle", { cx, cy: base, r: 6.5, fill: c.control ? "#8d8c86" : "var(--china)", stroke: "var(--surface-1)", "stroke-width": 2 }, svg);
+    if (!reduce) dot.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 900 + i * 60, fill: "both" });
+    dot.addEventListener("mousemove", e => showTip(e, `<b>${c.stock}${c.control ? " (control)" : ""}</b><br>gross <span class="m">${c.gross_bps_per_day} bps/day</span> · hit <span class="m">${pct(c.hit_rate)}</span><br>Newey-West t <span class="m">${c.t_newey_west}</span>`)); dot.addEventListener("mouseleave", hideTip);
+  });
+  const ctl = C.find(c => c.control);
+  if (ctl) { const t = el("text", { x: x2(Math.max(0, ctl.gross_bps_per_day)), y: base - 14, "text-anchor": "middle", "font-size": 10.5, fill: "var(--text-muted)" }, svg); t.textContent = "Coal India (control)"; }
+  const metal = C.filter(c => !c.control).map(c => c.gross_bps_per_day);
+  const t2 = el("text", { x: x2((Math.min(...metal) + Math.max(...metal)) / 2), y: base - 14, "text-anchor": "middle", "font-size": 10.5, fill: "var(--china)", "font-weight": 600 }, svg); t2.textContent = "copper-linked metal stocks";
+})();
+
+/* ---------- heatmap ---------- */
+(function heat() {
+  const svg = document.getElementById("heat"), C = S.network.co_movement;
+  const sectors = [...new Set(C.map(c => c.sector))], markets = ["spx","ndx","sox","sx5e","nky","kospi","twse","hsi","shcomp"].filter(m => C.some(c => c.market === m));
+  const L = 110, T = 34, cw = (1320 - L) / markets.length, ch = 38;
+  const steps = ["#1f2a3a", "#184f95", "#256abf", "#3987e5", "#6da7ec", "#9ec5f4"];
+  const col = v => steps[Math.max(0, Math.min(steps.length - 1, Math.floor(v / 0.1)))];
+  markets.forEach((m, j) => { const t = el("text", { x: L + j * cw + cw / 2, y: T - 12, "text-anchor": "middle", "font-size": 12, fill: COLOR(region(m)), "font-weight": 600 }, svg); t.textContent = short[m]; });
+  sectors.forEach((s, i) => {
+    const t = el("text", { x: L - 12, y: T + i * ch + ch / 2 + 4, "text-anchor": "end", "font-size": 12.5 }, svg); t.textContent = short[s];
+    markets.forEach((m, j) => {
+      const c = C.find(c => c.sector === s && c.market === m), v = c.corr;
+      const r = el("rect", { x: L + j * cw + 1, y: T + i * ch + 1, width: cw - 2, height: ch - 2, rx: 4, fill: col(v), opacity: 0 }, svg);
+      r.animate([{ opacity: 0 }, { opacity: 1 }], { duration: reduce ? 0 : 500, delay: 150 + (i + j) * 45, fill: "forwards" });
+      const tx = el("text", { x: L + j * cw + cw / 2, y: T + i * ch + ch / 2 + 4, "text-anchor": "middle", "font-size": 12, "font-family": "JetBrains Mono", fill: v >= 0.4 ? "#0b0b0a" : "var(--text-primary)" }, svg);
+      tx.textContent = v.toFixed(2);
+      r.addEventListener("mousemove", e => showTip(e, `<b>Nifty ${short[s]} × ${NAMES[m]}</b><br>correlation <span class="m">${v.toFixed(3)}</span>`)); r.addEventListener("mouseleave", hideTip);
+    });
+  });
+  const ly = T + sectors.length * ch + 18;
+  const lt = el("text", { x: L, y: ly + 10, "font-size": 11, fill: "var(--text-muted)" }, svg); lt.textContent = "correlation";
+  steps.forEach((s, i) => { el("rect", { x: L + 80 + i * 46, y: ly, width: 44, height: 12, rx: 3, fill: s }, svg);
+    const t = el("text", { x: L + 80 + i * 46 + 22, y: ly + 26, "text-anchor": "middle", "font-size": 10.5, fill: "var(--text-muted)" }, svg); t.textContent = i === steps.length - 1 ? "≥0.5" : (i / 10).toFixed(1); });
+})();
+
+/* ---------- morning brief ---------- */
+(function brief() {
+  if (!B) { document.getElementById("brief").textContent = "Brief unavailable."; return; }
+  const day = new Date(B.for_session + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  document.getElementById("brief-title").textContent = `Global cues for ${day}`;
+  document.getElementById("brief-sub").textContent = `Moves since India's close on ${B.since_india_close}. Expected opening gap by sector, with each forecast's out-of-sample record. A description of history, not a recommendation.`;
+  const items = B.overnight_moves.filter(m => m.move !== null).map(m => {
+    const v = m.unit === "points" ? (m.move > 0 ? "+" : "") + m.move.toFixed(2) + " pts" : (m.move > 0 ? "+" : "") + (m.move * 100).toFixed(2) + "%";
+    return `<span>${m.market} <b class="${m.move >= 0 ? "pos" : "neg"}">${m.move >= 0 ? "▲" : "▼"} ${v}</b></span>`; }).join("");
+  document.getElementById("ticker").innerHTML = items + items;
+  const wrap = document.getElementById("brief");
+  B.sectors.forEach(s => {
+    const g = s.gap, up = g.expected_bps >= 0;
+    const d = document.createElement("div"); d.className = "sector";
+    d.innerHTML = `<div class="n">${s.name}</div><div class="v" style="color:${up ? "var(--up)" : "var(--down)"}">${up ? "▲" : "▼"} ${up ? "+" : ""}${g.expected_bps.toFixed(0)} bps</div>
+      <div class="h">gap call right ${g.out_of_sample_hit_rate ? Math.round(g.out_of_sample_hit_rate * 100) + "%" : "–"} of the time${g.high_confidence ? " · high confidence" : ""}</div>
+      <div class="h">driver: ${g.main_drivers[0] ? (NAMES[g.main_drivers[0].cue.split(":")[0]] || g.main_drivers[0].cue) : "–"}</div>
+      ${s.actual_gap_bps != null ? `<div class="h" style="margin-top:6px;color:var(--text-secondary)">actual open <b class="mono" style="color:${s.actual_gap_bps >= 0 ? "var(--up)" : "var(--down)"}">${s.actual_gap_bps >= 0 ? "▲ +" : "▼ "}${s.actual_gap_bps.toFixed(0)} bps</b> · ${(s.actual_gap_bps >= 0) === up ? "✓ direction right" : "✗ direction wrong"}</div>` : ""}`;
+    wrap.appendChild(d);
+  });
+  document.getElementById("foot-meta").innerHTML = `sample ${S.sample.first} → ${S.sample.last}<br>${S.sample.sessions.toLocaleString("en-IN")} sessions · generated ${S.generated}<br>github.com/krish-vd/quant-spillover-atlas`;
+})();
+
+/* ---------- screenshot mode: ?still&shot=<section> ---------- */
+(function shotMode() {
+  const shot = new URLSearchParams(location.search).get("shot");
+  if (!shot) return;
+  document.body.classList.add("shot");
+  const wrap = document.querySelector(".wrap");
+  [...wrap.children].forEach(c => { if (c.dataset.shot !== shot) c.style.display = "none"; });
+  const titles = { relay: "When each market's news reaches India", network: "Who drives whom: the spillover network",
+    score: "Out-of-sample accuracy and pass-through at 09:15", robust: "Robustness: placebos, calibration and costs",
+    heat: "Sector × market co-movement", brief: "This morning, scored against the actual open", method: "Method" };
+  if (shot !== "hero") {
+    const bar = document.createElement("div"); bar.className = "shotbar";
+    bar.innerHTML = `<div class="t">${titles[shot] || ""}</div><div class="s">Quant Spillover Atlas<br>${S.sample.first.slice(0,4)}–${S.sample.last.slice(0,4)} · NSE official data · out of sample</div>`;
+    wrap.prepend(bar); bar.style.display = "";
+  }
+  const foot = document.createElement("div"); foot.className = "shotfoot";
+  foot.innerHTML = `<span>github.com/krish-vd/quant-spillover-atlas</span><span>Research, not investment advice</span>`;
+  wrap.appendChild(foot); foot.style.display = "";
+})();
+</script>
+</body>
+</html>
